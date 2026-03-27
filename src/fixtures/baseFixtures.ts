@@ -3,6 +3,8 @@ import { test as base } from "@playwright/test";
 import { LoginPage } from "../pages/LoginPage";
 import { InventoryPage } from "../pages/InventoryPage";
 import { CartPage } from "../pages/CartPage";
+import { CheckoutPage } from "../pages/CheckoutPage";
+import { CheckoutOverviewPage } from "../pages/CheckoutOverviewPage";
 import { AppHeader } from "../components/AppHeader";
 import { Logger } from "../utils/logger";
 
@@ -11,6 +13,8 @@ type TestFixtures = {
   loginPage: LoginPage;
   inventoryPage: InventoryPage;
   cartPage: CartPage;
+  checkoutPage: CheckoutPage;
+  checkoutOverviewPage: CheckoutOverviewPage;
   appHeader: AppHeader;
   logger: Logger;
 };
@@ -30,6 +34,14 @@ export const test = base.extend<TestFixtures>({
 
   cartPage: async ({ page }, use) => {
     await use(new CartPage(page));
+  },
+
+  checkoutPage: async ({ page }, use) => {
+    await use(new CheckoutPage(page));
+  },
+
+  checkoutOverviewPage: async ({ page }, use) => {
+    await use(new CheckoutOverviewPage(page));
   },
 
   appHeader: async ({ page }, use) => {

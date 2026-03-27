@@ -1,10 +1,12 @@
 // path: tests/e2e/inventory.spec.ts
 import { test, expect } from '../../src/fixtures/baseFixtures';
+import { EnvHelper } from '../../src/utils/envHelper';
+import { SortOption } from '../../src/enums/SortOption';
 
 test.describe('Swag Labs — Inventory Page', () => {
   test.beforeEach(async ({ loginPage }) => {
     await loginPage.open();
-    await loginPage.loginAs('standard_user', 'secret_sauce');
+    await loginPage.loginAs(EnvHelper.get('STANDARD_USER'), EnvHelper.get('USER_PASSWORD'));
   });
 
   test('should display the "Products" page title', async ({ inventoryPage }) => {
@@ -32,5 +34,11 @@ test.describe('Swag Labs — Inventory Page', () => {
     const url = await appHeader.logout();
     expect(url).toContain('saucedemo.com');
     expect(url).not.toContain('inventory');
+  });
+
+  test('should sort products by price from low to high', async ({ inventoryPage }) => {
+    await inventoryPage.sortProductsBy(SortOption.PriceLowToHigh);
+    const prices = await inventoryPage.getAllPrices();
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
   });
 });

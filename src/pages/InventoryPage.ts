@@ -1,6 +1,6 @@
 // path: src/pages/InventoryPage.ts
-import { type Page } from "@playwright/test";
 import { BasePage } from "./BasePage";
+import { SortOption } from "../enums/SortOption";
 
 /**
  * Page object for the Swag Labs inventory / product listing page (/inventory.html).
@@ -28,18 +28,26 @@ export class InventoryPage extends BasePage {
     return this.getTextByTestId("inventory-item-price", index);
   }
 
+  /** Get all product prices as numbers in their current display order. */
+  async getAllPrices(): Promise<number[]> {
+    const prices = await this.page.getByTestId("inventory-item-price").allInnerTexts();
+    return prices.map((p) => parseFloat(p.replace("$", "")));
+  }
+
   /** Click the "Add to cart" button for a product at the given zero-based index. */
   async addProductToCart(index: number): Promise<void> {
     this.logger.info(`Adding product at index ${index} to cart`);
-    await this.page
-      .getByTestId("inventory-item")
-      .nth(index)
-      .getByRole("button", { name: "Add to cart" })
-      .click();
+    await this.page.getByTestId("inventory-item").nth(index).getByRole("button", { name: "Add to cart" }).click();
+  }
+
+  /** Find a product by its name and click its "Add to cart" button. */
+  async addProductToCartByName(name: string): Promise<void> {
+    this.logger.info(`Adding product "${name}" to cart`);
+    await this.page.getByTestId("inventory-item").filter({ hasText: name }).getByRole("button", { name: "Add to cart" }).click();
   }
 
   /** Select a sorting option from the product sort dropdown. */
-  async sortProductsBy(option: "az" | "za" | "lohi" | "hilo"): Promise<void> {
+  async sortProductsBy(option: SortOption): Promise<void> {
     this.logger.info(`Sorting products by: ${option}`);
     await this.page.getByTestId("product-sort-container").selectOption(option);
   }

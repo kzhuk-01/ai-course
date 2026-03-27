@@ -14,7 +14,8 @@ export default defineConfig({
   timeout: EnvHelper.getNumber("TIMEOUT", 30000),
 
   use: {
-    baseURL: EnvHelper.get("BASE_URL", "https://playwright.dev"),
+    baseURL: EnvHelper.get("BASE_URL", "https://www.saucedemo.com"),
+    testIdAttribute: "data-test",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     actionTimeout: 10000,

@@ -23,22 +23,6 @@ export abstract class BasePage {
     await this.page.goto(this.path);
   }
 
-  /** Navigate to an arbitrary URL path. For internal use by subclasses only. */
-  protected async navigate(path: string): Promise<void> {
-    this.logger.info(`Navigating to ${path}`);
-    await this.page.goto(path);
-  }
-
-  /** Wait for the page to reach a load state. */
-  async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState("domcontentloaded");
-  }
-
-  /** Get the current page title. */
-  async getTitle(): Promise<string> {
-    return this.page.title();
-  }
-
   /** Get the current page URL. */
   getCurrentUrl(): string {
     return this.page.url();
@@ -57,36 +41,31 @@ export abstract class BasePage {
     return this.getCurrentUrl();
   }
 
-  /** Click a button by its accessible name. */
-  async clickButton(name: string): Promise<void> {
-    this.logger.info(`Clicking button: ${name}`);
-    await this.getByRole("button", { name }).click();
-  }
-
-  /** Fill a form field identified by its label. */
-  async fillField(label: string, value: string): Promise<void> {
-    this.logger.info(`Filling field "${label}"`);
-    await this.getByLabel(label).fill(value);
-  }
-
-  /** Get heading text, optionally filtered by name or level. */
-  async getHeadingText(options?: { name?: string | RegExp; level?: 1 | 2 | 3 | 4 | 5 | 6 }): Promise<string> {
-    return this.getByRole("heading", options).first().innerText();
-  }
-
-  /** Check whether a heading with the given name is visible. */
-  async isHeadingVisible(name: string): Promise<boolean> {
-    return this.getByRole("heading", { name }).isVisible();
-  }
-
-  /** Check whether a button with the given name is visible. */
-  async isButtonVisible(name: string): Promise<boolean> {
-    return this.getByRole("button", { name }).isVisible();
-  }
-
   /** Locate an element by its test ID attribute. */
   protected getByTestId(testId: string): Locator {
     return this.page.getByTestId(testId);
+  }
+
+  /** Count all elements matching a data-testid on the page. */
+  protected countByTestId(testId: string): Promise<number> {
+    return this.page.getByTestId(testId).count();
+  }
+
+  /** Get the inner text of an element matching a data-testid at the given zero-based index. */
+  protected async getTextByTestId(testId: string, index = 0): Promise<string> {
+    return this.page.getByTestId(testId).nth(index).innerText();
+  }
+
+  /** Click an element matching a data-testid at the given zero-based index. */
+  protected async clickByTestId(testId: string, index = 0): Promise<void> {
+    this.logger.info(`Clicking [data-testid="${testId}"] at index ${index}`);
+    await this.page.getByTestId(testId).nth(index).click();
+  }
+
+  /** Wait for the URL to match a glob pattern and return the resolved URL. */
+  protected async waitForUrlAndReturn(urlGlob: string): Promise<string> {
+    await this.page.waitForURL(urlGlob);
+    return this.getCurrentUrl();
   }
 
   /** Locate an element by its accessible role and name. */

@@ -3,13 +3,15 @@ name: Playwright Tests
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
-# Cancel any in-progress run for the same PR to avoid wasted minutes.
+# Cancel any in-progress run for the same PR or branch to avoid wasted minutes.
 concurrency:
-  group: playwright-${{ github.event.pull_request.number }}
+  group: playwright-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Minimal permissions: read-only access to repo contents.
+# Minimal default permissions for all jobs.
 permissions:
   contents: read
 
@@ -18,6 +20,17 @@ jobs:
     name: playwright-tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    # Job-level permissions: read repo + Pages deploy rights.
+    # Overrides the top-level read-only default for this job only.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-pages.outputs.page_url }}
 
     env:
       CI: true
@@ -94,6 +107,44 @@ jobs:
                 }
               ]
             }'
+
+      # 9. Fetch existing run history from gh-pages, append the current run, and write
+      #    history.json into playwright-report/ so the published site carries a run log.
+      #    Skipped on PRs — runs on main only to avoid unauthorized Pages deployments.
+      - name: Prepare run history
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          PREV_HISTORY="[]"
+          # Fetch history.json from gh-pages if the branch and file already exist.
+          if git fetch origin gh-pages --depth=1 2>/dev/null; then
+            PREV_HISTORY=$(git show origin/gh-pages:history.json 2>/dev/null || echo "[]")
+          fi
+
+          # Build a new entry for this run.
+          NEW_ENTRY=$(jq -n \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg commit  "${{ github.sha }}" \
+            --arg ref     "${{ github.ref }}" \
+            '{timestamp: $timestamp, run_url: $run_url, commit: $commit, ref: $ref}')
+
+          # Append the new entry and keep the last 50 runs to bound file size.
+          echo "$PREV_HISTORY" \
+            | jq --argjson entry "$NEW_ENTRY" '. + [$entry] | .[-50:]' \
+            > playwright-report/history.json
+
+      # 10. Package playwright-report/ as the GitHub Pages site artifact.
+      - name: Upload Pages artifact
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report/
+
+      # 11. Deploy the packaged artifact to GitHub Pages.
+      - name: Deploy to GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        id: deploy-pages
+        uses: actions/deploy-pages@v4
 
   security-scan:
     name: security-scan

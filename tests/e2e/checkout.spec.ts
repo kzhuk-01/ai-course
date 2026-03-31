@@ -17,7 +17,7 @@ test.describe("Swag Labs — Checkout Flow", () => {
     appHeader,
   }) => {
     await inventoryPage.addProductToCartByName(PRODUCT_NAME);
-    expect(await appHeader.getCartBadgeCount()).toBe(10);
+    expect(await appHeader.getCartBadgeCount()).toBe(1);
 
     await appHeader.openCart();
     expect(await cartPage.getCartItemName(0)).toBe(PRODUCT_NAME);

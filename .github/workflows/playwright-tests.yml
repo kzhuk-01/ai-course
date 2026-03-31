@@ -43,8 +43,15 @@ jobs:
         run: npx playwright install --with-deps
 
       # 5. Execute the full Playwright test suite in parallel across available workers.
+      #    Credentials are stored as GitHub repository secrets and injected here so
+      #    EnvHelper can resolve them without a .env file on the runner.
       - name: Run Playwright tests
         run: npx playwright test
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          STANDARD_USER: ${{ secrets.STANDARD_USER }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+          LOCKED_OUT_USER: ${{ secrets.LOCKED_OUT_USER }}
 
       # 6. Always upload the HTML report so failures can be inspected after the run.
       - name: Upload HTML report

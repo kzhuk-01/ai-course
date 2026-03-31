@@ -1,0 +1,15 @@
+{
+  "name": "ai-test-maintenance",
+  "version": "1.0.0",
+  "description": "Playwright tests using Page Object Model for playwright.dev",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}

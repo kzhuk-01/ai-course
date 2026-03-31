@@ -112,12 +112,17 @@ jobs:
       #    history.json into playwright-report/ so the published site carries a run log.
       #    Skipped on PRs — runs on main only to avoid unauthorized Pages deployments.
       - name: Prepare run history
-        if: always() && github.ref == 'refs/heads/main'
+        if: ${{ always() && github.ref == 'refs/heads/main' }}
         run: |
+          # Ensure the report directory exists even if Playwright failed before creating it.
+          mkdir -p playwright-report
+
           PREV_HISTORY="[]"
           # Fetch history.json from gh-pages if the branch and file already exist.
           if git fetch origin gh-pages --depth=1 2>/dev/null; then
             PREV_HISTORY=$(git show origin/gh-pages:history.json 2>/dev/null || echo "[]")
+            # Guard against corrupt JSON on the branch.
+            echo "$PREV_HISTORY" | jq empty 2>/dev/null || PREV_HISTORY="[]"
           fi
 
           # Build a new entry for this run.
@@ -134,15 +139,16 @@ jobs:
             > playwright-report/history.json
 
       # 10. Package playwright-report/ as the GitHub Pages site artifact.
+      #     Requires index.html at the root; skip gracefully if the reporter never ran.
       - name: Upload Pages artifact
-        if: always() && github.ref == 'refs/heads/main'
+        if: ${{ always() && github.ref == 'refs/heads/main' && hashFiles('playwright-report/index.html') != '' }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: playwright-report/
 
       # 11. Deploy the packaged artifact to GitHub Pages.
       - name: Deploy to GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
+        if: ${{ always() && github.ref == 'refs/heads/main' && hashFiles('playwright-report/index.html') != '' }}
         id: deploy-pages
         uses: actions/deploy-pages@v4
 

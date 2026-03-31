@@ -29,7 +29,7 @@ jobs:
       id-token: write
 
     environment:
-      name: github-pages
+      name: ${{ github.ref == 'refs/heads/main' && 'github-pages' || '' }}
       url: ${{ steps.deploy-pages.outputs.page_url }}
 
     env:

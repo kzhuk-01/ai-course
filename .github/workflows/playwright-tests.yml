@@ -1,0 +1,65 @@
+name: Playwright Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel any in-progress run for the same PR to avoid wasted minutes.
+concurrency:
+  group: playwright-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Minimal permissions: read-only access to repo contents.
+permissions:
+  contents: read
+
+jobs:
+  playwright-tests:
+    name: playwright-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CI: true
+
+    steps:
+      # 1. Check out the repository at the PR head commit.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up the latest LTS Node.js with Yarn cache enabled.
+      - name: Set up Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+
+      # 3. Install dependencies from the lockfile; fail on unexpected changes.
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache --check-cache
+
+      # 4. Install Playwright browser binaries along with OS-level system deps.
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps
+
+      # 5. Execute the full Playwright test suite in parallel across available workers.
+      - name: Run Playwright tests
+        run: yarn playwright test
+
+      # 6. Always upload the HTML report so failures can be inspected after the run.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 30
+
+      # 7. Always upload trace archives to allow step-level debugging of failures.
+      - name: Upload Playwright traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/**/trace*.zip
+          retention-days: 30

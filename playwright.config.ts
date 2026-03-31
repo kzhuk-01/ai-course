@@ -8,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: EnvHelper.getNumber("RETRY_COUNT", 1),
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 3 : undefined,
   reporter: [["html"], ["list"]],
   timeout: EnvHelper.getNumber("TIMEOUT", 30000),
 

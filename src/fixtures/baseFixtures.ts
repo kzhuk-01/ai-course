@@ -1,15 +1,20 @@
-// path: src/fixtures/baseFixtures.ts
 import { test as base } from "@playwright/test";
-import { HomePage } from "../pages/HomePage";
-import { DocsPage } from "../pages/DocsPage";
-import { TopNavBar } from "../components/TopNavBar";
+import { LoginPage } from "../pages/LoginPage";
+import { InventoryPage } from "../pages/InventoryPage";
+import { CartPage } from "../pages/CartPage";
+import { CheckoutPage } from "../pages/CheckoutPage";
+import { CheckoutOverviewPage } from "../pages/CheckoutOverviewPage";
+import { AppHeader } from "../components/AppHeader";
 import { Logger } from "../utils/logger";
 
 /** Type definitions for custom test fixtures. */
 type TestFixtures = {
-  homePage: HomePage;
-  docsPage: DocsPage;
-  topNavBar: TopNavBar;
+  loginPage: LoginPage;
+  inventoryPage: InventoryPage;
+  cartPage: CartPage;
+  checkoutPage: CheckoutPage;
+  checkoutOverviewPage: CheckoutOverviewPage;
+  appHeader: AppHeader;
   logger: Logger;
 };
 
@@ -18,16 +23,28 @@ type TestFixtures = {
  * Provides setup/teardown lifecycle hooks and injects POM instances automatically.
  */
 export const test = base.extend<TestFixtures>({
-  homePage: async ({ page }, use) => {
-    await use(new HomePage(page));
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
   },
 
-  docsPage: async ({ page }, use) => {
-    await use(new DocsPage(page));
+  inventoryPage: async ({ page }, use) => {
+    await use(new InventoryPage(page));
   },
 
-  topNavBar: async ({ page }, use) => {
-    await use(new TopNavBar(page));
+  cartPage: async ({ page }, use) => {
+    await use(new CartPage(page));
+  },
+
+  checkoutPage: async ({ page }, use) => {
+    await use(new CheckoutPage(page));
+  },
+
+  checkoutOverviewPage: async ({ page }, use) => {
+    await use(new CheckoutOverviewPage(page));
+  },
+
+  appHeader: async ({ page }, use) => {
+    await use(new AppHeader(page));
   },
 
   logger: [

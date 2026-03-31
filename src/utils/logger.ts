@@ -1,5 +1,4 @@
-// path: src/utils/logger.ts
-type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
 
 /**
  * Lightweight logger for test execution output.
@@ -13,22 +12,22 @@ export class Logger {
 
   /** Log an informational message. */
   info(message: string): void {
-    this.log('INFO', message);
+    this.log("INFO", message);
   }
 
   /** Log a warning message. */
   warn(message: string): void {
-    this.log('WARN', message);
+    this.log("WARN", message);
   }
 
   /** Log an error message. */
   error(message: string): void {
-    this.log('ERROR', message);
+    this.log("ERROR", message);
   }
 
   /** Log a debug message. */
   debug(message: string): void {
-    this.log('DEBUG', message);
+    this.log("DEBUG", message);
   }
 
   private log(level: LogLevel, message: string): void {

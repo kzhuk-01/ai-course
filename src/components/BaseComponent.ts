@@ -1,6 +1,5 @@
-// path: src/components/BaseComponent.ts
-import { type Page, type Locator } from '@playwright/test';
-import { Logger } from '../utils/logger';
+import { type Page, type Locator } from "@playwright/test";
+import { Logger } from "../utils/logger";
 
 /**
  * Base class for reusable UI components (Component Object Model).
@@ -22,13 +21,19 @@ export abstract class BaseComponent {
     return this.root.isVisible();
   }
 
-  /** Locate an element by test ID scoped within this component. */
+  /** Wait for the URL to match a glob pattern and return the resolved URL. */
+  protected async waitForUrlAndReturn(urlGlob: string): Promise<string> {
+    await this.page.waitForURL(urlGlob);
+    return this.page.url();
+  }
+
+  /** Locate an element by `data-test` attribute (test ID) scoped within this component. */
   protected getByTestId(testId: string): Locator {
     return this.root.getByTestId(testId);
   }
 
   /** Locate an element by accessible role scoped within this component. */
-  protected getByRole(role: Parameters<Locator['getByRole']>[0], options?: Parameters<Locator['getByRole']>[1]): Locator {
+  protected getByRole(role: Parameters<Locator["getByRole"]>[0], options?: Parameters<Locator["getByRole"]>[1]): Locator {
     return this.root.getByRole(role, options);
   }
 

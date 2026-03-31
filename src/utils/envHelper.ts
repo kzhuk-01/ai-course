@@ -1,4 +1,3 @@
-// path: src/utils/envHelper.ts
 import * as dotenv from "dotenv";
 import * as path from "node:path";
 

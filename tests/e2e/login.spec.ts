@@ -1,4 +1,3 @@
-// path: tests/e2e/login.spec.ts
 import { test, expect } from "../../src/fixtures/baseFixtures";
 import { EnvHelper } from "../../src/utils/envHelper";
 

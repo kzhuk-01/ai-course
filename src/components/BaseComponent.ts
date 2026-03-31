@@ -1,4 +1,3 @@
-// path: src/components/BaseComponent.ts
 import { type Page, type Locator } from "@playwright/test";
 import { Logger } from "../utils/logger";
 
@@ -28,7 +27,7 @@ export abstract class BaseComponent {
     return this.page.url();
   }
 
-  /** Locate an element by test ID scoped within this component. */
+  /** Locate an element by `data-test` attribute (test ID) scoped within this component. */
   protected getByTestId(testId: string): Locator {
     return this.root.getByTestId(testId);
   }

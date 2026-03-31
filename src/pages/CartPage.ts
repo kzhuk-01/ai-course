@@ -1,5 +1,3 @@
-// path: src/pages/CartPage.ts
-import { type Page } from "@playwright/test";
 import { BasePage } from "./BasePage";
 
 /**

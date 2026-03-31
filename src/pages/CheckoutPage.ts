@@ -1,4 +1,3 @@
-// path: src/pages/CheckoutPage.ts
 import { BasePage } from "./BasePage";
 
 /**

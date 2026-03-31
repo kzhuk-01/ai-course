@@ -1,4 +1,3 @@
-// path: src/pages/InventoryPage.ts
 import { BasePage } from "./BasePage";
 import { SortOption } from "../enums/SortOption";
 

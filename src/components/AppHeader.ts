@@ -1,4 +1,3 @@
-// path: src/components/AppHeader.ts
 import { type Page } from "@playwright/test";
 import { BaseComponent } from "./BaseComponent";
 

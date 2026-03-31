@@ -1,4 +1,3 @@
-// path: playwright.config.ts
 import { defineConfig, devices } from "@playwright/test";
 import { EnvHelper } from "./src/utils/envHelper";
 

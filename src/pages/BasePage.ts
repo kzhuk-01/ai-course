@@ -1,4 +1,3 @@
-// path: src/pages/BasePage.ts
 import { type Page, type Locator } from "@playwright/test";
 import { Logger } from "../utils/logger";
 

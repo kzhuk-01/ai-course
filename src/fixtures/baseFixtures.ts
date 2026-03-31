@@ -1,4 +1,3 @@
-// path: src/fixtures/baseFixtures.ts
 import { test as base } from "@playwright/test";
 import { LoginPage } from "../pages/LoginPage";
 import { InventoryPage } from "../pages/InventoryPage";

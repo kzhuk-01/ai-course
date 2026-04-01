@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   playwright-tests:
-    name: playwright-tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -27,11 +26,6 @@ jobs:
       contents: read
       pages: write
       id-token: write
-
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'github-pages' || '' }}
-      url: ${{ steps.deploy-pages.outputs.page_url }}
-
     env:
       CI: true
 
@@ -115,8 +109,8 @@ jobs:
         if: ${{ always() && github.ref == 'refs/heads/main' }}
         run: |
           # Ensure the report directory exists even if Playwright failed before creating it.
+          sudo apt-get update && sudo apt-get install -y jq
           mkdir -p playwright-report
-
           PREV_HISTORY="[]"
           # Fetch history.json from gh-pages if the branch and file already exist.
           if git fetch origin gh-pages --depth=1 2>/dev/null; then
@@ -132,10 +126,8 @@ jobs:
             --arg commit  "${{ github.sha }}" \
             --arg ref     "${{ github.ref }}" \
             '{timestamp: $timestamp, run_url: $run_url, commit: $commit, ref: $ref}')
-
           # Append the new entry and keep the last 50 runs to bound file size.
-          echo "$PREV_HISTORY" \
-            | jq --argjson entry "$NEW_ENTRY" '. + [$entry] | .[-50:]' \
+          echo "$PREV_HISTORY" | jq --argjson entry "$NEW_ENTRY" '. + [$entry] | .[-50:]' \
             > playwright-report/history.json
 
       # 10. Package playwright-report/ as the GitHub Pages site artifact.
@@ -152,8 +144,12 @@ jobs:
         id: deploy-pages
         uses: actions/deploy-pages@v4
 
+      # Set environment URL after deployment
+      - name: Set environment URL
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: echo "PAGE_URL=${{ steps.deploy-pages.outputs.page_url }}" >> $GITHUB_ENV
+
   security-scan:
-    name: security-scan
     runs-on: ubuntu-latest
     continue-on-error: false
 

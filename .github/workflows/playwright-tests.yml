@@ -1,0 +1,185 @@
+name: Playwright Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel any in-progress run for the same PR or branch to avoid wasted minutes.
+concurrency:
+  group: playwright-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Minimal default permissions for all jobs.
+permissions:
+  contents: read
+
+jobs:
+  playwright-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Job-level permissions: read repo + Pages deploy rights.
+    # Overrides the top-level read-only default for this job only.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    env:
+      CI: true
+
+    steps:
+      # 1. Check out the repository at the PR head commit.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up the latest LTS Node.js with npm cache enabled.
+      - name: Set up Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      # 3. Install dependencies from the lockfile; fail on unexpected changes.
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Install Playwright browser binaries along with OS-level system deps.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      # 5. Execute the full Playwright test suite in parallel across available workers.
+      #    Credentials are stored as GitHub repository secrets and injected here so
+      #    EnvHelper can resolve them without a .env file on the runner.
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          STANDARD_USER: ${{ secrets.STANDARD_USER }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+          LOCKED_OUT_USER: ${{ secrets.LOCKED_OUT_USER }}
+
+      # 6. Always upload the HTML report so failures can be inspected after the run.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 30
+
+      # 7. Always upload trace archives to allow step-level debugging of failures.
+      - name: Upload Playwright traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/**/trace*.zip
+          retention-days: 30
+
+      # 8. Notify Microsoft Teams on workflow failure.
+      - name: Notify Teams on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.TEAMS_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "@type": "MessageCard",
+              "@context": "https://schema.org/extensions",
+              "summary": "Playwright Tests Failed",
+              "themeColor": "FF0000",
+              "title": "Playwright Tests Failed",
+              "sections": [
+                {
+                  "facts": [
+                    { "name": "PR Title",  "value": "${{ github.event.pull_request.title }}" },
+                    { "name": "Author",    "value": "${{ github.event.pull_request.user.login }}" },
+                    { "name": "Branch",    "value": "${{ github.head_ref }}" },
+                    { "name": "Run URL",   "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                  ]
+                }
+              ]
+            }'
+
+      # 9. Fetch existing run history from gh-pages, append the current run, and write
+      #    history.json into playwright-report/ so the published site carries a run log.
+      #    Skipped on PRs — runs on main only to avoid unauthorized Pages deployments.
+      - name: Prepare run history
+        if: ${{ always() && github.ref == 'refs/heads/main' }}
+        run: |
+          # Ensure the report directory exists even if Playwright failed before creating it.
+          sudo apt-get update && sudo apt-get install -y jq
+          mkdir -p playwright-report
+          PREV_HISTORY="[]"
+          # Fetch history.json from gh-pages if the branch and file already exist.
+          if git fetch origin gh-pages --depth=1 2>/dev/null; then
+            PREV_HISTORY=$(git show origin/gh-pages:history.json 2>/dev/null || echo "[]")
+            # Guard against corrupt JSON on the branch.
+            echo "$PREV_HISTORY" | jq empty 2>/dev/null || PREV_HISTORY="[]"
+          fi
+
+          # Build a new entry for this run.
+          NEW_ENTRY=$(jq -n \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg commit  "${{ github.sha }}" \
+            --arg ref     "${{ github.ref }}" \
+            '{timestamp: $timestamp, run_url: $run_url, commit: $commit, ref: $ref}')
+          # Append the new entry and keep the last 50 runs to bound file size.
+          echo "$PREV_HISTORY" | jq --argjson entry "$NEW_ENTRY" '. + [$entry] | .[-50:]' \
+            > playwright-report/history.json
+
+      # 10. Package playwright-report/ as the GitHub Pages site artifact.
+      #     Requires index.html at the root; skip gracefully if the reporter never ran.
+      - name: Upload Pages artifact
+        if: ${{ always() && github.ref == 'refs/heads/main' && hashFiles('playwright-report/index.html') != '' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report/
+
+      # 11. Deploy the packaged artifact to GitHub Pages.
+      - name: Deploy to GitHub Pages
+        if: ${{ always() && github.ref == 'refs/heads/main' && hashFiles('playwright-report/index.html') != '' }}
+        id: deploy-pages
+        uses: actions/deploy-pages@v4
+
+      # Set environment URL after deployment
+      - name: Set environment URL
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: echo "PAGE_URL=${{ steps.deploy-pages.outputs.page_url }}" >> $GITHUB_ENV
+
+  security-scan:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dependency vulnerability scan
+        id: audit
+        run: |
+          echo "## Dependency Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # npm audit exits non-zero when vulnerabilities at or above --audit-level are found.
+          # Output is captured for the summary; the raw exit code drives job failure.
+          if npm audit --audit-level=high --json > audit-output.json 2>&1; then
+            echo "No high or critical vulnerabilities found." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "High or critical vulnerabilities detected:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            npm audit --audit-level=high 2>&1 | tail -40 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
